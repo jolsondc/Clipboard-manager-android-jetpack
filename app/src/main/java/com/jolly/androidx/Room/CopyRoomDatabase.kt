@@ -10,7 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 
-@Database(entities = [Word::class], version = 1)
+@Database(entities = [Word::class], version = 1,exportSchema = false)
 abstract class CopyRoomDatabase : RoomDatabase() {
 
     abstract fun copyDao(): CopyDao
@@ -20,19 +20,24 @@ abstract class CopyRoomDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: CopyRoomDatabase? = null
 
-        fun getDatabase(context: Context,
-                        scope: CoroutineScope): CopyRoomDatabase {
-            val tempInstance = INSTANCE
-            if (tempInstance != null) {
-                return tempInstance
+        fun getInstance(context: Context):CopyRoomDatabase{
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: getDatabase(context).also { INSTANCE = it }
             }
+        }
+
+      internal fun getDatabase(context: Context): CopyRoomDatabase {
+
             synchronized(this) {
                 val instance = Room.databaseBuilder(
                         context.applicationContext,
                         CopyRoomDatabase::class.java,
                         "copy_database"
-                ).addCallback(CopyDatabaseCallback(scope)).build()
-                INSTANCE = instance
+                ).addCallback(object:RoomDatabase.Callback(){
+                    override fun onCreate(db: SupportSQLiteDatabase) {
+                        super.onCreate(db)
+                    }
+                }).build()
                 return instance
             }
         }
@@ -46,17 +51,10 @@ abstract class CopyRoomDatabase : RoomDatabase() {
             super.onOpen(db)
             INSTANCE?.let { database ->
                 scope.launch(Dispatchers.IO) {
-                    populateDatabase(database.copyDao())
+                    //populateDatabase(database.copyDao())
                 }
             }
         }
 
-        suspend fun populateDatabase(copyDao: CopyDao) {
-            copyDao.deleteAll()
-
-
-            copyDao.insert(Word(0,"Hello"))
-            copyDao.insert(Word(0,"World!"))
-        }
     }
 }

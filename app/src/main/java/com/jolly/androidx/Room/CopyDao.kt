@@ -9,7 +9,7 @@ import androidx.room.Query
 interface CopyDao {
 
     @Insert
-    suspend fun insert(data: Word)
+     fun insert(data: Word)
 
     @Query("SELECT * from copy_table ORDER BY data ASC")
     fun getAllWords(): LiveData<List<Word>>

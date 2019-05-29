@@ -1,14 +1,30 @@
 package com.jolly.androidx.Room
 
+import android.util.Log
 import androidx.annotation.WorkerThread
 import androidx.lifecycle.LiveData
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-class CopyRepository(private val copyDao: CopyDao) {
+class CopyRepository internal constructor(private val copyDao: CopyDao) {
 
-    val allWords: LiveData<List<Word>> = copyDao.getAllWords()
+    fun getAllData() = copyDao.getAllWords()
 
-    @WorkerThread
-    suspend fun insert(data: Word) {
-        copyDao.insert(data)
+
+     suspend fun insert(data: Word) =withContext(Dispatchers.IO){
+            //Log.i("TAG","insert ="+data.data)
+            copyDao.insert(data)
+
     }
-}
+
+
+    companion object{
+        // For Singleton instantiation
+        @Volatile private var instance: CopyRepository? = null
+
+        fun getInstance(copyDao: CopyDao) =
+                instance ?: synchronized(this) {
+                    instance ?: CopyRepository(copyDao).also { instance = it }
+                }
+    }
+    }
